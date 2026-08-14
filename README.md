@@ -27,3 +27,6 @@ Each browser receives a private anonymous identity. Clearing that browser's data
 
 The app loads its Portland catalog from Supabase when configured and falls back to the bundled starter list otherwise. Catalog records are intentionally separate from individual trip data so they can be expanded and maintained without touching anyone's notes or itinerary.
 
+## Sharing a trip: 
+
+Once Supabase is configured, the first person to open the app gets a link like yourapp.com/?trip=<id>. Share that exact URL with the other three — anyone who opens it lands on the same trip, sees the same itinerary, and can edit rankings/notes together in real time (on refresh).
