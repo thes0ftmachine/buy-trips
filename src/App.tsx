@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { loadTrip, saveTrip, type SavedTrip } from './lib/trip-store'
+import { loadCatalog, type CatalogStop } from './lib/catalog-store'
 
 type Kind = 'record' | 'food'
 type Rank = 1 | 2 | 3 | 4 | 5
-type Stop = { id: string; name: string; kind: Kind; neighborhood: string; lng: number; lat: number; rating: number; hours: string; specialty: string; photo: string; description: string; meal?: 'Lunch' | 'Dinner'; rank?: Rank; note?: string }
+type Stop = CatalogStop & { rank?: Rank; note?: string }
 
-const stops: Stop[] = [
+const seedStops: Stop[] = [
   { id: 'mm', name: 'Music Millennium', kind: 'record', neighborhood: 'Laurelhurst', lng: -122.639, lat: 45.522, rating: 4.7, hours: 'Open Â· Closes 7 PM', specialty: 'New releases Â· Local artists', photo: 'ðŸŽ§', description: 'An all-purpose Portland institution with deep new-vinyl bins and an excellent local music wall.', rank: 5, note: 'Check new arrivals + Portland section' },
   { id: 'lr', name: 'Little Axe Records', kind: 'record', neighborhood: 'Northwest', lng: -122.694, lat: 45.532, rating: 4.8, hours: 'Opens 11 AM', specialty: 'Soul Â· Jazz Â· Rare groove', photo: 'ðŸ’¿', description: 'Small, selective shop for adventurous digging: private press, international funk, and heavyweight jazz.', rank: 4 },
   { id: 'ec', name: 'Everyday Music', kind: 'record', neighborhood: 'Hawthorne', lng: -122.623, lat: 45.512, rating: 4.5, hours: 'Open Â· Closes 8 PM', specialty: 'Used vinyl Â· CDs Â· Books', photo: 'ðŸ“€', description: 'A high-volume used-media stop where patient crate digging pays off.' },
@@ -23,11 +24,13 @@ function Recenter({ stop }: { stop: Stop }) {
 }
 
 export default function App() {
-  const [selected, setSelected] = useState<Stop>(stops[0])
+  const [catalog, setCatalog] = useState<Stop[]>(seedStops)
+  const [selected, setSelected] = useState<Stop>(seedStops[0])
   const [added, setAdded] = useState<string[]>(['mm', 'lr', 'lu', 'jo'])
   const [rankings, setRankings] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [persistenceReady, setPersistenceReady] = useState(false)
+  const stops = catalog
   const [tab, setTab] = useState<'map' | 'plan'>('map')
   const [query, setQuery] = useState('')
   const rankOf = (stop: Stop) => (rankings[stop.id] ?? stop.rank ?? 3) as Rank
@@ -35,8 +38,8 @@ export default function App() {
   const [ranking, setRanking] = useState<Rank>(rankOf(selected))
   const [note, setNote] = useState(noteOf(selected))
 
-  const results = useMemo(() => stops.filter(s => `${s.name} ${s.neighborhood} ${s.specialty}`.toLowerCase().includes(query.toLowerCase())), [query])
-  const itinerary = stops.filter(s => added.includes(s.id))
+  const results = useMemo(() => catalog.filter(s => `${s.name} ${s.neighborhood} ${s.specialty}`.toLowerCase().includes(query.toLowerCase())), [query, catalog])
+  const itinerary = catalog.filter(s => added.includes(s.id))
   const select = (stop: Stop) => { setSelected(stop); setRanking(rankOf(stop)); setNote(noteOf(stop)) }
   const toggle = () => setAdded(current => current.includes(selected.id) ? current.filter(id => id !== selected.id) : [...current, selected.id])
   const isAdded = added.includes(selected.id)
@@ -47,6 +50,7 @@ export default function App() {
       setAdded(trip.added)
       setRankings(trip.rankings)
       setNotes(trip.notes)
+      loadCatalog(seedStops).then(setCatalog)
       setPersistenceReady(true)
     })
   }, [])
