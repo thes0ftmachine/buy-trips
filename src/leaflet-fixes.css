@@ -1,0 +1,8 @@
+.leaflet-map { z-index: 0; }
+.topbar { z-index: 1000; }
+.search { z-index: 1001; }
+.search-results { z-index: 1002; }
+.detail-sheet { z-index: 1001; }
+.bottom-nav { z-index: 1003; }
+.plan-panel { z-index: 1004; }
+
