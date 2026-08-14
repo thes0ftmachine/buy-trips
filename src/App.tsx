@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox'
+import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from 'react-leaflet'
+import L from 'leaflet'
 
 type Kind = 'record' | 'food'
 type Rank = 1 | 2 | 3 | 4 | 5
@@ -14,7 +15,11 @@ const stops: Stop[] = [
   { id: 'jo', name: 'Janken', kind: 'food', neighborhood: 'Pearl District', lng: -122.683, lat: 45.528, rating: 4.5, hours: 'Dinner from 5 PM', specialty: 'Japanese Â· Steakhouse', photo: 'ðŸ£', description: 'A polished dinner option close to Northwest digging.', meal: 'Dinner', rank: 3 }
 ]
 
-const token = import.meta.env.VITE_MAPBOX_TOKEN
+function Recenter({ stop }: { stop: Stop }) {
+  const map = useMap()
+  map.setView([stop.lat, stop.lng], Math.max(map.getZoom(), 13), { animate: true })
+  return null
+}
 
 export default function App() {
   const [selected, setSelected] = useState<Stop>(stops[0])
@@ -32,10 +37,12 @@ export default function App() {
 
   return <main className="app-shell">
     <section className="map-screen" aria-label="Portland record trip map">
-      {token ? <Map mapboxAccessToken={token} initialViewState={{ longitude: -122.665, latitude: 45.528, zoom: 12.1 }} mapStyle="mapbox://styles/mapbox/light-v11" attributionControl={false}>
-        <NavigationControl position="top-right" />
-        {stops.map(stop => <Marker key={stop.id} longitude={stop.lng} latitude={stop.lat} anchor="bottom"><button className={`pin ${added.includes(stop.id) ? stop.kind : 'muted'}`} onClick={() => select(stop)} aria-label={`View ${stop.name}`}>{stop.kind === 'food' ? 'âœ¦' : 'â—'}</button></Marker>)}
-      </Map> : <div className="map-placeholder"><div className="river"></div><span className="map-label nw">NORTHWEST</span><span className="map-label se">HAWTHORNE</span>{stops.map(stop => <button key={stop.id} className={`pin floating ${added.includes(stop.id) ? stop.kind : 'muted'}`} style={{ left: `${(stop.lng + 122.70) * 1250}%`, top: `${(45.56 - stop.lat) * 1250}%` }} onClick={() => select(stop)} aria-label={`View ${stop.name}`}>{stop.kind === 'food' ? 'âœ¦' : 'â—'}</button>)}</div>}
+      <MapContainer center={[45.528, -122.665]} zoom={12.1} zoomControl={false} className="leaflet-map" attributionControl>
+        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <ZoomControl position="topright" />
+        <Recenter stop={selected} />
+        {stops.map(stop => <Marker key={stop.id} position={[stop.lat, stop.lng]} icon={L.divIcon({ className: 'trip-marker-wrap', html: `<button class="pin ${added.includes(stop.id) ? stop.kind : 'muted'}" aria-label="View ${stop.name}">${stop.kind === 'food' ? 'âœ¦' : 'â—'}</button>`, iconSize: [31, 31], iconAnchor: [15, 31] })} eventHandlers={{ click: () => select(stop) }} />)}
+      </MapContainer>
 
       <header className="topbar"><div><p className="eyebrow">SEPT 14â€“16 Â· PORTLAND, OR</p><h1>Buy Trips</h1></div><button className="avatar" aria-label="Trip profile">RH</button></header>
       <label className="search"><span>âŒ•</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search records, food, neighborhoods" /></label>
