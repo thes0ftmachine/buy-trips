@@ -69,3 +69,26 @@ export function currentTripUrl(): string | null {
   params.set('trip', tripId)
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`
 }
+
+/**
+ * Subscribes to live updates for the currently loaded trip via Supabase Realtime.
+ * Must be called after `loadTrip` has resolved (so `tripId` is set).
+ * Returns an unsubscribe function; call it on unmount to avoid leaking the channel.
+ */
+export function subscribeToCurrentTrip(onChange: (data: SavedTrip) => void): () => void {
+  if (!supabase || !tripId) return () => {}
+
+  const channel = supabase
+    .channel(`trip-${tripId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'trips', filter: `id=eq.${tripId}` },
+      payload => {
+        const next = payload.new as { data: SavedTrip }
+        if (next?.data) onChange(next.data)
+      }
+    )
+    .subscribe()
+
+  return () => { supabase.removeChannel(channel) }
+}
