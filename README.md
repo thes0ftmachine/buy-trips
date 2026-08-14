@@ -4,15 +4,14 @@ A mobile-first Portland record-buying trip planner. It includes seeded record-st
 
 ## Run locally
 
-1. Copy `.env.example` to `.env` and add a public Mapbox token from your Mapbox account.
-2. Run `npm install`.
-3. Run `npm run dev`.
+1. Run `npm install`.
+2. Run `npm run dev`.
 
-Without `VITE_MAPBOX_TOKEN`, the app intentionally shows a lightweight placeholder map so the trip-planning UI remains usable.
+The app uses Leaflet and OpenStreetMap tiles. No map account or token is required.
 
 ## Deploy to Vercel
 
-Import the GitHub repository in Vercel, add `VITE_MAPBOX_TOKEN` in the Vercel environment variables, and deploy. Vercel recognizes this Vite project automatically.
+Import the GitHub repository in Vercel and deploy. Vercel recognizes this Vite project automatically.
 
 ## Supabase next step
 
