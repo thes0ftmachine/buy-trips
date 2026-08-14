@@ -27,7 +27,7 @@ The app supports shared, no-login persistence through Supabase Anonymous Sign-In
 
 ## Sharing a trip
 
-Once Supabase is configured, the first person to open the app gets a trip link like `yourapp.com/?trip=<id>`. Tap the share icon (â†—) on any stop's detail sheet to copy that link to your clipboard.
+Once Supabase is configured, the first person to open the app gets a trip link like `yourapp.com/?trip=<id>`. Tap the share icon (↗) on any stop's detail sheet to copy that link to your clipboard.
 
 Send that exact URL to the other people planning the trip. Anyone who opens it loads the same trip: same itinerary, same rankings, same notes. Access is controlled by knowing the link's trip ID rather than by an account, so treat the link like you would a shared document link — anyone with it can view and edit.
 
