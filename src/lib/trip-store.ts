@@ -9,8 +9,18 @@ export type SavedTrip = {
 const localKey = 'buy-trips:portland-v1'
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-const supabase = url && key ? createClient(url, key) : null
+export const supabase = url && key ? createClient(url, key) : null
 let tripId: string | null = null
+
+export async function ensureAnonymousSession() {
+  if (!supabase) return false
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session) {
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) return false
+  }
+  return true
+}
 
 function localLoad(fallback: SavedTrip) {
   try { return JSON.parse(localStorage.getItem(localKey) ?? '') as SavedTrip } catch { return fallback }
@@ -18,8 +28,7 @@ function localLoad(fallback: SavedTrip) {
 
 export async function loadTrip(fallback: SavedTrip): Promise<SavedTrip> {
   if (!supabase) return localLoad(fallback)
-  const { data: session } = await supabase.auth.getSession()
-  if (!session.session) await supabase.auth.signInAnonymously()
+  if (!await ensureAnonymousSession()) return localLoad(fallback)
   const { data: trip } = await supabase.from('trips').select('id, data').order('created_at').limit(1).maybeSingle()
   if (trip) { tripId = trip.id; return trip.data as SavedTrip }
   const { data, error } = await supabase.from('trips').insert({ name: 'Portland record run', data: fallback }).select('id').single()
