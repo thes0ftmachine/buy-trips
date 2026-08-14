@@ -6,7 +6,6 @@ export type SavedTrip = {
   notes: Record<string, string>
 }
 
-const localKey = 'buy-trips:portland-v1'
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 export const supabase = url && key ? createClient(url, key) : null
@@ -22,25 +21,51 @@ export async function ensureAnonymousSession() {
   return true
 }
 
-function localLoad(fallback: SavedTrip) {
-  try { return JSON.parse(localStorage.getItem(localKey) ?? '') as SavedTrip } catch { return fallback }
+function tripIdFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get('trip')
+}
+
+function setTripIdInUrl(id: string) {
+  const params = new URLSearchParams(window.location.search)
+  params.set('trip', id)
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+}
+
+function localKeyFor(id: string | null) {
+  return `buy-trips:portland-v1:${id ?? 'local'}`
+}
+
+function localLoad(id: string | null, fallback: SavedTrip) {
+  try { return JSON.parse(localStorage.getItem(localKeyFor(id)) ?? '') as SavedTrip } catch { return fallback }
 }
 
 export async function loadTrip(fallback: SavedTrip): Promise<SavedTrip> {
-  if (!supabase) return localLoad(fallback)
-  if (!await ensureAnonymousSession()) return localLoad(fallback)
-  const { data: trip } = await supabase.from('trips').select('id, data').order('created_at').limit(1).maybeSingle()
-  if (trip) { tripId = trip.id; return trip.data as SavedTrip }
+  const urlId = tripIdFromUrl()
+  if (!supabase || !await ensureAnonymousSession()) return localLoad(urlId, fallback)
+
+  if (urlId) {
+    const { data: trip } = await supabase.from('trips').select('id, data').eq('id', urlId).maybeSingle()
+    if (trip) { tripId = trip.id; return trip.data as SavedTrip }
+  }
+
+  // No trip in the URL, or the linked trip no longer exists: start a new shared trip.
   const { data, error } = await supabase.from('trips').insert({ name: 'Portland record run', data: fallback }).select('id').single()
-  if (error) { console.warn('Could not create trip', error.message); return localLoad(fallback) }
+  if (error) { console.warn('Could not create trip', error.message); return localLoad(urlId, fallback) }
   tripId = data.id
+  setTripIdInUrl(data.id)
   return fallback
 }
 
 export async function saveTrip(data: SavedTrip) {
-  try { localStorage.setItem(localKey, JSON.stringify(data)) } catch { /* Storage is optional. */ }
+  try { localStorage.setItem(localKeyFor(tripId ?? tripIdFromUrl()), JSON.stringify(data)) } catch { /* Storage is optional. */ }
   if (!supabase || !tripId) return
   const { error } = await supabase.from('trips').update({ data }).eq('id', tripId)
   if (error) console.warn('Could not save trip', error.message)
 }
 
+export function currentTripUrl(): string | null {
+  if (!tripId) return null
+  const params = new URLSearchParams(window.location.search)
+  params.set('trip', tripId)
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`
+}
