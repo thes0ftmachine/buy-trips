@@ -3,6 +3,7 @@ import { ensureAnonymousSession, supabase } from './trip-store'
 export type CatalogStop = {
   id: string; name: string; kind: 'record' | 'food'; neighborhood: string; lng: number; lat: number
   rating: number; hours: string; specialty: string; photo: string; description: string; meal?: 'Lunch' | 'Dinner'
+  image?: string
 }
 
 export async function loadCatalog(fallback: CatalogStop[]): Promise<CatalogStop[]> {
@@ -11,4 +12,3 @@ export async function loadCatalog(fallback: CatalogStop[]): Promise<CatalogStop[
   if (error || !data?.length) return fallback
   return data as CatalogStop[]
 }
-
