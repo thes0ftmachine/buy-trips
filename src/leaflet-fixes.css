@@ -5,4 +5,6 @@
 .detail-sheet { z-index: 1001; }
 .bottom-nav { z-index: 1003; }
 .plan-panel { z-index: 1004; }
-
+/* The topbar avatar and the search bar both sit top-right/full-width above the map;
+   push Leaflet's zoom control below both so it's never covered. */
+.leaflet-top.leaflet-right { top: 150px; }
