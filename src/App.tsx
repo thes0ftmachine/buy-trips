@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { loadTrip, saveTrip, type SavedTrip } from './lib/trip-store'
 
 type Kind = 'record' | 'food'
 type Rank = 1 | 2 | 3 | 4 | 5
@@ -24,16 +25,37 @@ function Recenter({ stop }: { stop: Stop }) {
 export default function App() {
   const [selected, setSelected] = useState<Stop>(stops[0])
   const [added, setAdded] = useState<string[]>(['mm', 'lr', 'lu', 'jo'])
+  const [rankings, setRankings] = useState<Record<string, number>>({})
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [persistenceReady, setPersistenceReady] = useState(false)
   const [tab, setTab] = useState<'map' | 'plan'>('map')
   const [query, setQuery] = useState('')
-  const [ranking, setRanking] = useState<Rank>(selected.rank ?? 3)
-  const [note, setNote] = useState(selected.note ?? '')
+  const rankOf = (stop: Stop) => (rankings[stop.id] ?? stop.rank ?? 3) as Rank
+  const noteOf = (stop: Stop) => notes[stop.id] ?? stop.note ?? ''
+  const [ranking, setRanking] = useState<Rank>(rankOf(selected))
+  const [note, setNote] = useState(noteOf(selected))
 
   const results = useMemo(() => stops.filter(s => `${s.name} ${s.neighborhood} ${s.specialty}`.toLowerCase().includes(query.toLowerCase())), [query])
   const itinerary = stops.filter(s => added.includes(s.id))
-  const select = (stop: Stop) => { setSelected(stop); setRanking(stop.rank ?? 3); setNote(stop.note ?? '') }
+  const select = (stop: Stop) => { setSelected(stop); setRanking(rankOf(stop)); setNote(noteOf(stop)) }
   const toggle = () => setAdded(current => current.includes(selected.id) ? current.filter(id => id !== selected.id) : [...current, selected.id])
   const isAdded = added.includes(selected.id)
+
+  useEffect(() => {
+    const fallback: SavedTrip = { added: ['mm', 'lr', 'lu', 'jo'], rankings: {}, notes: {} }
+    loadTrip(fallback).then(trip => {
+      setAdded(trip.added)
+      setRankings(trip.rankings)
+      setNotes(trip.notes)
+      setPersistenceReady(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!persistenceReady) return
+    const timer = window.setTimeout(() => saveTrip({ added, rankings, notes }), 450)
+    return () => window.clearTimeout(timer)
+  }, [added, rankings, notes, persistenceReady])
 
   return <main className="app-shell">
     <section className="map-screen" aria-label="Portland record trip map">
@@ -52,11 +74,11 @@ export default function App() {
         <div className="handle"></div><div className="detail-head"><div className="shop-photo">{selected.photo}</div><div><span className={`type ${selected.kind}`}>{selected.kind === 'food' ? selected.meal : 'RECORD SHOP'}</span><h2>{selected.name}</h2><p>{selected.neighborhood} Â· <b>â˜… {selected.rating}</b></p></div><button className="close" onClick={() => setSelected(stops[0])} aria-label="Close details">Ã—</button></div>
         <p className="description">{selected.description}</p><div className="facts"><span>â—· {selected.hours}</span><span>âŒ {selected.specialty}</span></div>
         <div className="actions"><button className={`add-button ${isAdded ? 'added' : ''}`} onClick={toggle}>{isAdded ? 'âœ“ In itinerary' : '+ Add to trip'}</button><button className="icon-button" aria-label="Share">â†—</button></div>
-        {isAdded && <div className="personal"><label>Priority <select value={ranking} onChange={e => setRanking(Number(e.target.value) as Rank)}>{[5,4,3,2,1].map(n => <option key={n} value={n}>{'â—'.repeat(n)}{'â—‹'.repeat(5-n)} Â· {n === 5 ? 'Must visit' : n === 4 ? 'High' : n === 3 ? 'Worth it' : 'Optional'}</option>)}</select></label><label>Note<textarea value={note} onChange={e => setNote(e.target.value)} placeholder="What are you hunting for?"></textarea></label></div>}
+        {isAdded && <div className="personal"><label>Priority <select value={ranking} onChange={e => { const value = Number(e.target.value) as Rank; setRanking(value); setRankings(current => ({ ...current, [selected.id]: value })) }}>{[5,4,3,2,1].map(n => <option key={n} value={n}>{'â—'.repeat(n)}{'â—‹'.repeat(5-n)} Â· {n === 5 ? 'Must visit' : n === 4 ? 'High' : n === 3 ? 'Worth it' : 'Optional'}</option>)}</select></label><label>Note<textarea value={note} onChange={e => { const value = e.target.value; setNote(value); setNotes(current => ({ ...current, [selected.id]: value })) }} placeholder="What are you hunting for?"></textarea></label></div>}
       </section>
     </section>
     <nav className="bottom-nav"><button className={tab === 'map' ? 'active' : ''} onClick={() => setTab('map')}>âŒ–<span>Map</span></button><button className={tab === 'plan' ? 'active' : ''} onClick={() => setTab('plan')}>â–¤<span>Itinerary <em>{itinerary.length}</em></span></button></nav>
-    {tab === 'plan' && <section className="plan-panel"><div className="plan-head"><div><p className="eyebrow">YOUR PORTLAND RUN</p><h2>{itinerary.length} stops to dig</h2></div><button onClick={() => setTab('map')}>View map</button></div>{(['record', 'food'] as Kind[]).map(kind => <div className="stop-group" key={kind}><h3>{kind === 'record' ? 'Record stores' : 'Fuel stops'}</h3>{itinerary.filter(s => s.kind === kind).map(stop => <button className="stop-row" key={stop.id} onClick={() => { select(stop); setTab('map') }}><span className={`dot ${stop.kind}`}></span><span>{stop.name}<small>{stop.neighborhood} Â· {stop.specialty}</small></span><b>â˜… {stop.rank ?? 3}</b></button>)}</div>)}</section>}
+    {tab === 'plan' && <section className="plan-panel"><div className="plan-head"><div><p className="eyebrow">YOUR PORTLAND RUN</p><h2>{itinerary.length} stops to dig</h2></div><button onClick={() => setTab('map')}>View map</button></div>{(['record', 'food'] as Kind[]).map(kind => <div className="stop-group" key={kind}><h3>{kind === 'record' ? 'Record stores' : 'Fuel stops'}</h3>{itinerary.filter(s => s.kind === kind).map(stop => <button className="stop-row" key={stop.id} onClick={() => { select(stop); setTab('map') }}><span className={`dot ${stop.kind}`}></span><span>{stop.name}<small>{stop.neighborhood} Â· {stop.specialty}</small></span><b>â˜… {rankOf(stop)}</b></button>)}</div>)}</section>}
   </main>
 }
 
