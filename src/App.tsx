@@ -44,6 +44,7 @@ export default function App() {
   const itinerary = catalog.filter(s => added.includes(s.id))
   const select = (stop: Stop) => { setSelected(stop); setRanking(rankOf(stop)); setNote(noteOf(stop)) }
   const toggle = () => setAdded(current => current.includes(selected.id) ? current.filter(id => id !== selected.id) : [...current, selected.id])
+  const remove = (id: string) => setAdded(current => current.filter(existingId => existingId !== id))
   const isAdded = added.includes(selected.id)
 
   const shareTrip = async () => {
@@ -94,7 +95,7 @@ export default function App() {
         {stops.map(stop => <Marker key={stop.id} position={[stop.lat, stop.lng]} icon={L.divIcon({ className: 'trip-marker-wrap', html: `<button class="pin ${added.includes(stop.id) ? stop.kind : 'muted'}" aria-label="View ${stop.name}">${stop.kind === 'food' ? '✦' : '●'}</button>`, iconSize: [31, 31], iconAnchor: [15, 31] })} eventHandlers={{ click: () => select(stop) }} />)}
       </MapContainer>
 
-      <header className="topbar"><div><p className="eyebrow">SEPT 5 · PORTLAND, OR</p><h1>Buy Trips</h1></div><button className="avatar" aria-label="Trip profile">RH</button></header>
+      <header className="topbar"><div><p className="eyebrow">SEPT 14–16 · PORTLAND, OR</p><h1>Buy Trips</h1></div><button className="avatar" aria-label="Trip profile">RH</button></header>
       <label className="search"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search records, food, neighborhoods" /></label>
       {query && <div className="search-results">{results.map(stop => <button key={stop.id} onClick={() => { select(stop); setQuery('') }}><span>{stop.photo}</span><span>{stop.name}<small>{stop.specialty}</small></span></button>)}</div>}
 
@@ -106,6 +107,6 @@ export default function App() {
       </section>
     </section>
     <nav className="bottom-nav"><button className={tab === 'map' ? 'active' : ''} onClick={() => setTab('map')}>⌖<span>Map</span></button><button className={tab === 'plan' ? 'active' : ''} onClick={() => setTab('plan')}>▤<span>Itinerary <em>{itinerary.length}</em></span></button></nav>
-    {tab === 'plan' && <section className="plan-panel"><div className="plan-head"><div><p className="eyebrow">YOUR PORTLAND RUN</p><h2>{itinerary.length} stops to dig</h2></div><button onClick={() => setTab('map')}>View map</button></div>{(['record', 'food'] as Kind[]).map(kind => <div className="stop-group" key={kind}><h3>{kind === 'record' ? 'Record stores' : 'Fuel stops'}</h3>{itinerary.filter(s => s.kind === kind).map(stop => <button className="stop-row" key={stop.id} onClick={() => { select(stop); setTab('map') }}><span className={`dot ${stop.kind}`}></span><span>{stop.name}<small>{stop.neighborhood} · {stop.specialty}</small></span><b>★ {rankOf(stop)}</b></button>)}</div>)}</section>}
+    {tab === 'plan' && <section className="plan-panel"><div className="plan-head"><div><p className="eyebrow">YOUR PORTLAND RUN</p><h2>{itinerary.length} stops to dig</h2></div><button onClick={() => setTab('map')}>View map</button></div>{(['record', 'food'] as Kind[]).map(kind => <div className="stop-group" key={kind}><h3>{kind === 'record' ? 'Record stores' : 'Fuel stops'}</h3>{itinerary.filter(s => s.kind === kind).map(stop => <div className="stop-row" key={stop.id}><button className="stop-row-main" onClick={() => { select(stop); setTab('map') }}><span className={`dot ${stop.kind}`}></span><span>{stop.name}<small>{stop.neighborhood} · {stop.specialty}</small></span><b>★ {rankOf(stop)}</b></button><button className="remove-stop" aria-label={`Remove ${stop.name} from itinerary`} onClick={() => remove(stop.id)}>×</button></div>)}</div>)}</section>}
   </main>
 }
