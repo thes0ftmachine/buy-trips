@@ -3,6 +3,7 @@ import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from 'react-leaf
 import L from 'leaflet'
 import { loadTrip, saveTrip, type SavedTrip } from './lib/trip-store'
 import { loadCatalog, type CatalogStop } from './lib/catalog-store'
+import { loadTrip, saveTrip, currentTripUrl, type SavedTrip } from './lib/trip-store'
 
 type Kind = 'record' | 'food'
 type Rank = 1 | 2 | 3 | 4 | 5
@@ -37,6 +38,14 @@ export default function App() {
   const noteOf = (stop: Stop) => notes[stop.id] ?? stop.note ?? ''
   const [ranking, setRanking] = useState<Rank>(rankOf(selected))
   const [note, setNote] = useState(noteOf(selected))
+
+  const [copied, setCopied] = useState(false)
+  const shareTrip = async () => {
+  const link = currentTripUrl() ?? window.location.href
+  await navigator.clipboard.writeText(link)
+  setCopied(true)
+  window.setTimeout(() => setCopied(false), 1800)
+}
 
   const results = useMemo(() => catalog.filter(s => `${s.name} ${s.neighborhood} ${s.specialty}`.toLowerCase().includes(query.toLowerCase())), [query, catalog])
   const itinerary = catalog.filter(s => added.includes(s.id))
@@ -77,7 +86,7 @@ export default function App() {
       <section className="detail-sheet">
         <div className="handle"></div><div className="detail-head"><div className="shop-photo">{selected.photo}</div><div><span className={`type ${selected.kind}`}>{selected.kind === 'food' ? selected.meal : 'RECORD SHOP'}</span><h2>{selected.name}</h2><p>{selected.neighborhood} Â· <b>â˜… {selected.rating}</b></p></div><button className="close" onClick={() => setSelected(stops[0])} aria-label="Close details">Ã—</button></div>
         <p className="description">{selected.description}</p><div className="facts"><span>â—· {selected.hours}</span><span>âŒ {selected.specialty}</span></div>
-        <div className="actions"><button className={`add-button ${isAdded ? 'added' : ''}`} onClick={toggle}>{isAdded ? 'âœ“ In itinerary' : '+ Add to trip'}</button><button className="icon-button" aria-label="Share">â†—</button></div>
+        <div className="actions"><button className={`add-button ${isAdded ? 'added' : ''}`} onClick={toggle}>{isAdded ? 'âœ“ In itinerary' : '+ Add to trip'}</button><button className="icon-button" aria-label="Share" onClick={shareTrip}>{copied ? '✓' : '↗'}</button></div>
         {isAdded && <div className="personal"><label>Priority <select value={ranking} onChange={e => { const value = Number(e.target.value) as Rank; setRanking(value); setRankings(current => ({ ...current, [selected.id]: value })) }}>{[5,4,3,2,1].map(n => <option key={n} value={n}>{'â—'.repeat(n)}{'â—‹'.repeat(5-n)} Â· {n === 5 ? 'Must visit' : n === 4 ? 'High' : n === 3 ? 'Worth it' : 'Optional'}</option>)}</select></label><label>Note<textarea value={note} onChange={e => { const value = e.target.value; setNote(value); setNotes(current => ({ ...current, [selected.id]: value })) }} placeholder="What are you hunting for?"></textarea></label></div>}
       </section>
     </section>
