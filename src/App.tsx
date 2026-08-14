@@ -95,7 +95,7 @@ export default function App() {
         {stops.map(stop => <Marker key={stop.id} position={[stop.lat, stop.lng]} icon={L.divIcon({ className: 'trip-marker-wrap', html: `<button class="pin ${added.includes(stop.id) ? stop.kind : 'muted'}" aria-label="View ${stop.name}">${stop.kind === 'food' ? '✦' : '●'}</button>`, iconSize: [31, 31], iconAnchor: [15, 31] })} eventHandlers={{ click: () => select(stop) }} />)}
       </MapContainer>
 
-      <header className="topbar"><div><p className="eyebrow">SEPT 14–16 · PORTLAND, OR</p><h1>Buy Trips</h1></div><button className="avatar" aria-label="Trip profile">RH</button></header>
+      <header className="topbar"><div><p className="eyebrow">SEPT 05 · PORTLAND, OR</p><h1>RECORD HUNTERS</h1></div><button className="avatar" aria-label="Trip profile">RH</button></header>
       <label className="search"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search records, food, neighborhoods" /></label>
       {query && <div className="search-results">{results.map(stop => <button key={stop.id} onClick={() => { select(stop); setQuery('') }}><span>{stop.photo}</span><span>{stop.name}<small>{stop.specialty}</small></span></button>)}</div>}
 
